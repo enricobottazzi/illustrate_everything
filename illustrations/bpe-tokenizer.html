@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BPE Tokenizer — Train, Encode, Decode</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF8; --bg2: #F1F0EC; --bg3: #E8E7E3;
+    --text: #1A1A18; --text2: #6B6A65; --text3: #9C9B96;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
+    --teal-50:#E1F5EE;--teal-600:#0F6E56;--teal-800:#085041;
+    --purple-50:#EEEDFE;--purple-600:#534AB7;--purple-800:#3C3489;
+    --amber-50:#FAEEDA;--amber-100:#FAC775;--amber-600:#854F0B;--amber-800:#633806;
+    --red:#E24B4A;
+    --mono:'JetBrains Mono',monospace;--sans:'DM Sans',system-ui,sans-serif;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --bg:#1A1A18;--bg2:#2C2C2A;--bg3:#3D3D3A;
+    --text:#E8E7E3;--text2:#9C9B96;--text3:#6B6A65;
+    --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+    --teal-50:#085041;--teal-600:#5DCAA5;--teal-800:#9FE1CB;
+    --purple-50:#3C3489;--purple-600:#AFA9EC;--purple-800:#CECBF6;
+    --amber-50:#412402;--amber-100:#854F0B;--amber-600:#EF9F27;--amber-800:#FAC775;
+    --red:#F09595;
+  }}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;padding:2.5rem 1.25rem 4rem}
+  .container{max-width:720px;margin:0 auto}
+  .hero{text-align:center;margin-bottom:3rem;padding-bottom:2rem;border-bottom:1px solid var(--border2)}
+  .hero h1{font-size:1.75rem;font-weight:600;letter-spacing:-0.02em;margin-bottom:0.25rem}
+  .hero p{font-size:0.875rem;color:var(--text2)}
+  .phase-title{font-size:0.6875rem;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);padding-bottom:0.625rem;margin-bottom:1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.5rem}
+  .phase-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:0.625rem;font-weight:600;background:var(--bg3);color:var(--text2)}
+  .sec{margin-bottom:1.5rem}
+  .sec-label{font-size:0.6875rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.375rem;font-weight:500}
+  .arrow-d{text-align:center;color:var(--text3);font-size:1rem;margin:0.375rem 0;opacity:0.6}
+  .tok-row{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:0.375rem}
+  .btok{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 6px;border-radius:4px;font-family:var(--mono);border:0.5px solid var(--border2);background:var(--bg2);min-width:28px;gap:1px;transition:transform 0.15s,box-shadow 0.15s}
+  .btok:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+  .btok .bval{font-size:0.8125rem;font-weight:500;color:var(--text)}
+  .btok .bchar{font-size:0.625rem;color:var(--text3)}
+  .btok.mg{background:var(--teal-50);border-color:var(--teal-600)}.btok.mg .bval{color:var(--teal-800)}
+  .btok.done{background:var(--amber-50);border-color:var(--amber-100)}.btok.done .bval{color:var(--amber-800)}
+  .mr{font-family:var(--mono);font-size:0.75rem;padding:3px 8px;border-radius:4px;background:var(--bg2);border:0.5px solid var(--border2);display:inline-block;margin:2px 2px 2px 0;color:var(--text2)}
+  .ctrls{display:flex;align-items:center;gap:0.625rem;margin:1rem 0}
+  .ctrls button{font-family:var(--sans);font-size:0.8125rem;font-weight:500;padding:0.375rem 0.875rem;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text);cursor:pointer;transition:background 0.15s,transform 0.1s}
+  .ctrls button:hover{background:var(--bg2)}.ctrls button:active{transform:scale(0.97)}
+  .step-i{font-size:0.8125rem;color:var(--text3);font-family:var(--mono)}
+  .stats{display:flex;gap:0.625rem;margin:0.75rem 0}
+  .st{flex:1;background:var(--bg2);border-radius:8px;padding:0.625rem 0.875rem}
+  .st-l{font-size:0.6875rem;color:var(--text3);margin-bottom:2px;font-weight:500}
+  .st-v{font-size:1.125rem;font-weight:600;font-family:var(--mono)}
+  .st-v.dn{color:var(--teal-600)}.st-v.up{color:var(--purple-600)}
+  .info{font-size:0.8125rem;color:var(--text2);margin:4px 0;line-height:1.5}
+  .info strong{color:var(--text);font-weight:500}
+  .dict{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+  .chart-box{position:relative;height:150px;margin:0.75rem 0 0}
+  .txt-in{width:100%;font-family:var(--mono);font-size:0.875rem;padding:0.625rem 0.875rem;border-radius:8px;border:1px solid var(--border2);background:var(--bg);color:var(--text);resize:vertical;min-height:2.75rem;line-height:1.5;transition:border-color 0.2s,box-shadow 0.2s}
+  .txt-in:focus{outline:none;border-color:var(--purple-600);box-shadow:0 0 0 3px rgba(83,74,183,0.1)}
+  .vocab-tbl{width:100%;border-collapse:collapse;font-size:0.8125rem;font-family:var(--mono);margin-top:0.375rem}
+  .vocab-tbl th{text-align:left;font-size:0.6875rem;font-family:var(--sans);font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:0.375rem 0.625rem;border-bottom:1px solid var(--border2)}
+  .vocab-tbl td{padding:0.3125rem 0.625rem;border-bottom:0.5px solid var(--border);color:var(--text)}
+  .vocab-tbl tr:last-child td{border-bottom:none}
+  .vocab-tbl .vid{color:var(--text3);font-size:0.75rem}.vocab-tbl .vbytes{font-weight:500}
+  .base-note{font-size:0.75rem;color:var(--text3);margin-top:4px;font-style:italic}
+  .divider{border:none;border-top:2px solid var(--border2);margin:2.5rem 0}
+  .out-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:0.5rem}
+  .out-tok{display:inline-flex;align-items:center;justify-content:center;padding:0.375rem 0.625rem;border-radius:5px;font-family:var(--mono);font-size:0.875rem;font-weight:600;background:var(--amber-50);border:1px solid var(--amber-100);color:var(--amber-800)}
+  .dec-text{font-family:var(--mono);font-size:1rem;font-weight:500;padding:0.75rem 1rem;background:var(--bg2);border-radius:8px;border:0.5px solid var(--border2);color:var(--text);word-break:break-all;min-height:2.5rem}
+  .dec-err{font-size:0.75rem;color:var(--red);margin-top:4px}
+  .footer{text-align:center;margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+  .footer p{font-size:0.75rem;color:var(--text3)}
+</style>
+</head>
+<body>
+<div class="container">
+
+<a href="../" style="display:inline-block;font-family:var(--sans);font-size:0.8125rem;color:var(--text3);text-decoration:none;margin-bottom:1.5rem;transition:color 0.15s"onmouseover="this.style.color='var(--text)'"onmouseout="this.style.color='var(--text3)'">&larr; Back to gallery</a>
+
+<div class="hero">
+  <h1>Byte Pair Encoding</h1>
+  <p>The tokenizer behind GPT &mdash; train, encode, and decode step by step</p>
+</div>
+
+<div class="phase-title"><span class="phase-num">1</span> Training</div>
+<div class="sec"><div class="sec-label">Raw text (editable)</div><textarea id="text-in" class="txt-in" rows="2">low low lower lower newest newest newest widest</textarea></div>
+<div class="arrow-d">&#8595;</div>
+<div class="sec"><div class="sec-label">UTF-8 byte encoding</div><div class="info" id="byte-info"></div><div id="byte-row" class="tok-row"></div></div>
+<div class="arrow-d">&#8595;</div>
+<div class="sec"><div class="sec-label">Iterative BPE merging</div><div id="merge-desc" class="info"></div><div id="merge-tok" class="tok-row"></div><div id="pair-info" class="info"></div></div>
+<div class="ctrls"><button onclick="go(-1)">&#8592; Back</button><span class="step-i" id="step-i">Merge 0/0</span><button onclick="go(1)">Next &#8594;</button><button style="margin-left:auto" onclick="goReset()">Reset</button></div>
+<div class="stats"><div class="st"><div class="st-l">Sequence length</div><div class="st-v dn" id="s-len">-</div></div><div class="st"><div class="st-l">Vocab size</div><div class="st-v up" id="s-voc">-</div></div><div class="st"><div class="st-l">Compression</div><div class="st-v" id="s-cmp">-</div></div></div>
+<div class="sec" style="margin-top:0.75rem"><div class="sec-label">Merge dictionary</div><div id="dict" class="dict"></div></div>
+<div class="sec" style="margin-top:1rem"><div class="sec-label">Sequence length vs vocab size</div><div class="chart-box"><canvas id="cv"></canvas></div></div>
+<div class="arrow-d">&#8595;</div>
+<div class="sec"><div class="sec-label">Final vocabulary</div><div class="info">256 base byte tokens + learned merges.</div><div class="base-note">Tokens 0&ndash;255: single byte values (base vocabulary)</div><table class="vocab-tbl"><thead><tr><th>Token id</th><th>Bytes</th></tr></thead><tbody id="vocab-body"></tbody></table></div>
+
+<hr class="divider">
+<div class="phase-title"><span class="phase-num">2</span> Encoding</div>
+<div class="sec"><div class="sec-label">Text to encode</div><textarea id="enc-in" class="txt-in" rows="1">low newest</textarea></div>
+<div class="arrow-d">&#8595;</div>
+<div class="sec"><div class="sec-label">UTF-8 bytes</div><div id="enc-bytes" class="tok-row"></div></div>
+<div class="arrow-d">&#8595;</div>
+<div class="sec"><div class="sec-label">Apply merge rules (lowest id to highest)</div><div id="enc-desc" class="info"></div><div id="enc-tok" class="tok-row"></div></div>
+<div class="ctrls"><button onclick="encGo(-1)">&#8592; Back</button><span class="step-i" id="enc-step-i">Rule 0/0</span><button onclick="encGo(1)">Next &#8594;</button><button style="margin-left:auto" onclick="encReset()">Reset</button></div>
+<div class="arrow-d">&#8595;</div>
+<div class="sec"><div class="sec-label">Token IDs</div><div id="enc-out" class="out-row"></div></div>
+
+<hr class="divider">
+<div class="phase-title"><span class="phase-num">3</span> Decoding</div>
+<div class="sec"><div class="sec-label">Token IDs (comma-separated)</div><input id="dec-in" class="txt-in" style="min-height:auto;resize:none" placeholder="e.g. 256, 32, 119"></div>
+<div class="arrow-d">&#8595;</div>
+<div class="sec"><div class="sec-label">Step 1 &mdash; token IDs to bytes via vocabulary</div><div id="dec-map" class="info"></div><div id="dec-bytes" class="tok-row"></div><div id="dec-err" class="dec-err"></div></div>
+<div class="arrow-d">&#8595;</div>
+<div class="sec"><div class="sec-label">Step 2 &mdash; UTF-8 decode to text</div><div id="dec-text" class="dec-text"></div></div>
+
+<div class="footer"><p>Based on Andrej Karpathy's "Let's Build the GPT Tokenizer"</p></div>
+</div>
+
+<script>
+const tenc=new TextEncoder(),tdec=new TextDecoder('utf-8',{fatal:false});
+let steps=[],cur=0,encSteps=[],encCur=0,trainedMerges=[],globalMM={};
+function toBytes(t){return Array.from(tenc.encode(t))}
+function byteToChar(b){if(b===32)return'\u2423';if(b<32||b===127)return'\u00b7';if(b>127)return'\u00b7';return String.fromCharCode(b)}
+function countP(ids){const c={};for(let i=0;i<ids.length-1;i++){const k=ids[i]+','+ids[i+1];c[k]=(c[k]||0)+1}return c}
+function mergeP(ids,a,b,nid){const o=[];let i=0;while(i<ids.length){if(i<ids.length-1&&ids[i]===a&&ids[i+1]===b){o.push(nid);i+=2}else{o.push(ids[i]);i++}}return o}
+function idToBytes(id,mm){if(id<256)return[id];const m=mm[id];if(!m)return null;const l=idToBytes(m.a,mm),r=idToBytes(m.b,mm);if(!l||!r)return null;return[...l,...r]}
+function lbl(id,v){if(v[id])return v[id];if(id<256){const c=String.fromCharCode(id);return c===' '?'\u2423':id<32?'\u00b7':c}return'T'+id}
+function hasPair(ids,a,b){for(let i=0;i<ids.length-1;i++){if(ids[i]===a&&ids[i+1]===b)return true}return false}
+
+function buildSteps(text){
+  steps=[];cur=0;trainedMerges=[];globalMM={};
+  if(!text){steps.push({ids:[],vocab:{},merges:[],mm:{},desc:'Type some text above to begin.'});return}
+  const rb=toBytes(text);let ids=[...rb],nid=256;
+  const vocab={},merges=[],mm={};
+  steps.push({ids:[...ids],vocab:{...vocab},merges:[...merges],mm:{...mm},desc:'Starting: '+rb.length+' raw UTF-8 bytes. Base vocab = 256 single bytes.'});
+  for(let m=0;m<20;m++){
+    const pairs=countP(ids);if(!Object.keys(pairs).length)break;
+    let tk=null,tc=0;for(const[k,v] of Object.entries(pairs)){if(v>tc){tc=v;tk=k}}
+    if(tc<2)break;
+    const[a,b]=tk.split(',').map(Number);
+    const la=lbl(a,vocab),lb=lbl(b,vocab);
+    vocab[nid]=(la==='\u2423'?'\u2423':la)+lb;mm[nid]={a,b};
+    merges.push({a,b,nid,la,lb,nl:vocab[nid],cnt:tc});
+    ids=mergeP(ids,a,b,nid);nid++;
+    steps.push({ids:[...ids],vocab:{...vocab},merges:[...merges],mm:{...mm},desc:'Merge '+(m+1)+': ('+la+', '+lb+') appears '+tc+'\u00d7 \u2192 new token id '+(nid-1)});
+  }
+  trainedMerges=steps[steps.length-1].merges.map(m=>({a:m.a,b:m.b,nid:m.nid}));
+  globalMM={...steps[steps.length-1].mm};
+}
+
+function buildEncSteps(text){
+  encSteps=[];encCur=0;
+  const rb=toBytes(text||'');
+  if(!text||!trainedMerges.length){encSteps.push({ids:rb,applied:null,ruleNum:0,desc:trainedMerges.length?'Starting with '+rb.length+' raw bytes.':'Train a vocabulary first.'});return}
+  let ids=[...rb];
+  const sorted=[...trainedMerges].sort((a,b)=>a.nid-b.nid);
+  encSteps.push({ids:[...ids],applied:null,ruleNum:0,desc:'Starting with '+ids.length+' raw UTF-8 bytes. Walking through '+sorted.length+' merge rules...'});
+  let rc=0;
+  for(let ri=0;ri<sorted.length;ri++){const m=sorted[ri];if(hasPair(ids,m.a,m.b)){ids=mergeP(ids,m.a,m.b,m.nid);rc++;const aB=idToBytes(m.a,globalMM).join(' '),bB=idToBytes(m.b,globalMM).join(' '),nB=idToBytes(m.nid,globalMM).join(' ');encSteps.push({ids:[...ids],applied:m,ruleNum:rc,desc:'Rule '+rc+' \u2014 token '+m.nid+': ('+aB+') + ('+bB+') \u2192 ('+nB+'). Sequence: '+ids.length+' tokens.'})}}
+  if(encSteps.length===1)encSteps[0].desc='Starting with '+rb.length+' raw bytes. No merge rules match \u2014 done.';
+  updateDecDefault();
+}
+
+function updateDecDefault(){const el=document.getElementById('dec-in');if(!el.dataset.userEdited){el.value=encSteps[encSteps.length-1].ids.join(', ');renderDecoding()}}
+
+function renderDecoding(){
+  const raw=document.getElementById('dec-in').value.trim(),errEl=document.getElementById('dec-err'),mapEl=document.getElementById('dec-map'),bytesEl=document.getElementById('dec-bytes'),textEl=document.getElementById('dec-text');
+  if(!raw){errEl.textContent='';mapEl.textContent='Enter token IDs above.';bytesEl.innerHTML='';textEl.textContent='';return}
+  const parts=raw.split(/[\s,]+/).filter(Boolean),ids=[],invalid=[];
+  for(const p of parts){const n=parseInt(p,10);if(isNaN(n)||n<0){invalid.push(p);continue}if(n>=256&&!globalMM[n]){invalid.push(p);continue}ids.push(n)}
+  errEl.textContent=invalid.length?'Unknown token(s): '+invalid.join(', ')+'. Must be 0\u2013255 or a trained merge token.':'';
+  const allBytes=[];let html='';
+  for(const id of ids){const bytes=idToBytes(id,globalMM);if(!bytes){html+='<div class="btok" style="border-color:var(--red)"><span class="bval">?</span></div>';continue}allBytes.push(...bytes);html+=id>=256?'<div class="btok done" title="token '+id+'"><span class="bval">'+bytes.join(' ')+'</span></div>':'<div class="btok"><span class="bval">'+id+'</span></div>'}
+  bytesEl.innerHTML=html;mapEl.innerHTML=ids.length?'<strong>'+ids.length+'</strong> token(s) \u2192 <strong>'+allBytes.length+'</strong> bytes':'';
+  textEl.textContent=allBytes.length?tdec.decode(new Uint8Array(allBytes)):'(empty)';
+}
+
+function renderTraining(){
+  const s=steps[cur],text=document.getElementById('text-in').value,rb=toBytes(text),last=steps[steps.length-1];
+  document.getElementById('byte-info').innerHTML='<strong>'+rb.length+'</strong> bytes \u2192 initial sequence length.';
+  document.getElementById('byte-row').innerHTML=rb.map(b=>'<div class="btok"><span class="bval">'+b+'</span><span class="bchar">'+byteToChar(b)+'</span></div>').join('');
+  document.getElementById('merge-tok').innerHTML=s.ids.map(id=>{const isMg=id>=256,cls=isMg?'btok mg':'btok',bytes=isMg?idToBytes(id,s.mm):[id];return'<div class="'+cls+'" title="id '+id+'"><span class="bval">'+(bytes||[]).join(' ')+'</span></div>'}).join('');
+  document.getElementById('merge-desc').textContent=s.desc;
+  const pi=document.getElementById('pair-info');
+  if(cur<steps.length-1){const ns=steps[cur+1].merges,m=ns[ns.length-1];if(m){const aB=idToBytes(m.a,s.mm).join(' '),bB=idToBytes(m.b,s.mm).join(' '),mB=[...idToBytes(m.a,s.mm),...idToBytes(m.b,s.mm)].join(' ');pi.innerHTML='Next: merge (<strong>'+aB+'</strong>) + (<strong>'+bB+'</strong>) \u2192 (<strong>'+mB+'</strong>) appears '+m.cnt+'\u00d7'}}else pi.innerHTML=cur===0?'Press <strong>Next \u2192</strong> to start merging.':'All useful merges complete.';
+  document.getElementById('step-i').textContent='Merge '+cur+' / '+(steps.length-1);
+  document.getElementById('s-len').textContent=s.ids.length;document.getElementById('s-voc').textContent=256+s.merges.length;
+  const r=rb.length?rb.length/s.ids.length:1;document.getElementById('s-cmp').textContent=r.toFixed(2)+'\u00d7';
+  document.getElementById('dict').innerHTML=s.merges.map(m=>{const aB=idToBytes(m.a,s.mm).join(' '),bB=idToBytes(m.b,s.mm).join(' '),mB=[...idToBytes(m.a,s.mm),...idToBytes(m.b,s.mm)].join(' ');return'<span class="mr">('+aB+') + ('+bB+') \u2192 ('+mB+')</span>'}).join('');
+  let rows='';last.merges.forEach(m=>{rows+='<tr><td class="vid">'+m.nid+'</td><td class="vbytes">'+idToBytes(m.nid,last.mm).join(' ')+'</td></tr>'});
+  document.getElementById('vocab-body').innerHTML=rows||'<tr><td colspan="2" style="color:var(--text3)">No merges yet.</td></tr>';
+  drawChart(rb.length);
+}
+
+function renderEncoding(){
+  const s=encSteps[encCur],rb=toBytes(document.getElementById('enc-in').value||'');
+  document.getElementById('enc-bytes').innerHTML=rb.map(b=>'<div class="btok"><span class="bval">'+b+'</span></div>').join('');
+  document.getElementById('enc-tok').innerHTML=s.ids.map(id=>{const isMg=id>=256,cls=isMg?'btok done':'btok',bytes=isMg?idToBytes(id,globalMM):[id];return'<div class="'+cls+'" title="id '+id+'"><span class="bval">'+(bytes||[]).join(' ')+'</span></div>'}).join('');
+  document.getElementById('enc-desc').textContent=s.desc;
+  document.getElementById('enc-step-i').textContent='Rule '+encCur+' / '+(encSteps.length-1);
+  document.getElementById('enc-out').innerHTML=encSteps[encSteps.length-1].ids.map(id=>'<div class="out-tok">'+id+'</div>').join('');
+}
+
+function render(){renderTraining();renderEncoding();renderDecoding()}
+
+function drawChart(rawLen){
+  const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),dpr=devicePixelRatio||1,W=cv.parentElement.clientWidth,H=150;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';ctx.scale(dpr,dpr);
+  const pad={l:48,r:48,t:14,b:24},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const maxX=Math.max(steps.length-1,1),maxS=Math.max(rawLen,1),maxV=256+(steps[steps.length-1]?.merges?.length||0)+10;
+  const dk=matchMedia('(prefers-color-scheme:dark)').matches;
+  const brd=dk?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.08)',sC=dk?'#5DCAA5':'#0F6E56',vC=dk?'#AFA9EC':'#534AB7',tcol=dk?'#6B6A65':'#9C9B96';
+  ctx.strokeStyle=brd;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+  function drawL(pts,key,mx,col){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();pts.forEach((p,i)=>{const x=pad.l+(p.x/maxX)*cw,y=pad.t+ch-(p[key]/mx)*ch;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke();const a=pts[cur]||pts[pts.length-1],ax=pad.l+(a.x/maxX)*cw,ay=pad.t+ch-(a[key]/mx)*ch;ctx.fillStyle=col;ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.fill()}
+  const pts=steps.slice(0,cur+1).map((s,i)=>({x:i,sl:s.ids.length,vs:256+s.merges.length}));
+  drawL(pts,'sl',maxS,sC);drawL(pts,'vs',maxV,vC);
+  ctx.font='500 11px "DM Sans",sans-serif';ctx.fillStyle=sC;ctx.textAlign='right';ctx.fillText('Seq len \u2193',pad.l-6,pad.t+10);
+  ctx.fillStyle=vC;ctx.textAlign='left';ctx.fillText('Vocab \u2191',W-pad.r+6,pad.t+10);
+  ctx.fillStyle=tcol;ctx.textAlign='center';ctx.fillText('Merge iterations \u2192',W/2,H-4);
+}
+
+function go(d){const n=cur+d;if(n>=0&&n<steps.length){cur=n;render()}}
+function goReset(){cur=0;render()}
+function encGo(d){const n=encCur+d;if(n>=0&&n<encSteps.length){encCur=n;renderEncoding()}}
+function encReset(){encCur=0;renderEncoding()}
+function rebuildAll(){buildSteps(document.getElementById('text-in').value);buildEncSteps(document.getElementById('enc-in').value);render()}
+
+let dT,dE,dD;
+document.getElementById('text-in').addEventListener('input',function(){clearTimeout(dT);dT=setTimeout(()=>{document.getElementById('dec-in').dataset.userEdited='';rebuildAll()},200)});
+document.getElementById('enc-in').addEventListener('input',function(){clearTimeout(dE);dE=setTimeout(()=>{document.getElementById('dec-in').dataset.userEdited='';buildEncSteps(this.value);renderEncoding();updateDecDefault()},200)});
+document.getElementById('dec-in').addEventListener('input',function(){this.dataset.userEdited='1';clearTimeout(dD);dD=setTimeout(()=>renderDecoding(),200)});
+
+rebuildAll();
+window.addEventListener('resize',()=>render());
+</script>
+</body>
+</html>

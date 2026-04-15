@@ -4,5 +4,11 @@
     "description": "A sample illustration to get started.",
     "file": "illustrations/sample.html",
     "date": "2026-04-15"
+  },
+  {
+    "title": "BPE Tokenizer",
+    "description": "Interactive byte pair encoding — train, encode, and decode step by step.",
+    "file": "illustrations/bpe-tokenizer.html",
+    "date": "2026-04-15"
   }
 ]

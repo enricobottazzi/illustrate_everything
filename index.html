@@ -4,162 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Illustrate Everything</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #060608;
-    --surface: #0e0e12;
-    --border: #1a1a22;
-    --text: #d4d4d8;
-    --text-dim: #6b6b76;
-    --accent: #a78bfa;
-    --accent-dim: rgba(167, 139, 250, 0.08);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    min-height: 100vh;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 300;
-    -webkit-font-smoothing: antialiased;
-  }
-  .noise {
-    position: fixed; inset: 0; z-index: 0; opacity: 0.03;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    pointer-events: none;
-  }
-  .container {
-    position: relative; z-index: 1;
-    max-width: 720px; margin: 0 auto;
-    padding: 6rem 2rem 4rem;
-  }
-  header { margin-bottom: 4rem; }
-  h1 {
-    font-family: 'Instrument Serif', serif;
-    font-size: 3.2rem; font-weight: 400;
-    letter-spacing: -0.03em; line-height: 1.1;
-    color: #fff; margin-bottom: 0.75rem;
-  }
-  .subtitle { font-size: 0.95rem; color: var(--text-dim); line-height: 1.6; }
-  .count {
-    display: inline-block; margin-top: 1.5rem;
-    font-size: 0.75rem; text-transform: uppercase;
-    letter-spacing: 0.12em; color: var(--accent); font-weight: 500;
-  }
-  .divider { height: 1px; background: var(--border); margin: 2rem 0; }
-  .gallery { display: flex; flex-direction: column; gap: 1px; }
-  .card {
-    display: flex; align-items: baseline; gap: 1.5rem;
-    padding: 1.25rem 1.5rem; text-decoration: none;
-    color: var(--text); border-radius: 8px;
-    transition: background 0.25s ease, transform 0.2s ease;
-    position: relative;
-  }
-  .card:hover { background: var(--accent-dim); transform: translateX(4px); }
-  .card:hover .card-title { color: #fff; }
-  .card:hover .arrow { opacity: 1; transform: translateX(0); }
-  .card-number {
-    font-size: 0.7rem; font-weight: 500;
-    color: var(--text-dim); min-width: 1.5rem;
-    letter-spacing: 0.05em; flex-shrink: 0;
-  }
-  .card-body { flex: 1; min-width: 0; }
-  .card-title {
-    font-family: 'Instrument Serif', serif;
-    font-size: 1.35rem; font-weight: 400; line-height: 1.3;
-    transition: color 0.2s ease; letter-spacing: -0.01em;
-  }
-  .card-desc {
-    font-size: 0.82rem; color: var(--text-dim);
-    margin-top: 0.3rem; line-height: 1.5;
-  }
-  .card-date {
-    font-size: 0.7rem; color: var(--text-dim); opacity: 0.6;
-    flex-shrink: 0; font-variant-numeric: tabular-nums;
-  }
-  .arrow {
-    color: var(--accent); opacity: 0;
-    transform: translateX(-8px);
-    transition: all 0.25s ease;
-    flex-shrink: 0; font-size: 1.1rem;
-  }
-  .empty {
-    text-align: center; padding: 4rem 2rem;
-    color: var(--text-dim); font-size: 0.95rem;
-  }
-  .loading {
-    text-align: center; padding: 4rem 2rem;
-    color: var(--text-dim); font-size: 0.85rem;
-    letter-spacing: 0.05em; text-transform: uppercase;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
-  }
-  footer {
-    margin-top: 5rem; padding-top: 2rem;
-    border-top: 1px solid var(--border);
-    font-size: 0.75rem; color: var(--text-dim); opacity: 0.5;
-  }
-  @media (max-width: 540px) {
-    .container { padding: 3rem 1.25rem 2rem; }
-    h1 { font-size: 2.2rem; }
-    .card { padding: 1rem; gap: 1rem; }
-    .card-title { font-size: 1.15rem; }
-    .card-date { display: none; }
-  }
+  body { background: #000; color: #ccc; font-family: monospace; max-width: 640px; margin: 0 auto; padding: 3rem 1.5rem; line-height: 1.7; }
+  a { color: #888; }
+  a:hover { color: #fff; }
+  h1 { color: #fff; font-size: 1.4rem; margin-bottom: 0.5rem; }
+  p { margin-bottom: 2rem; color: #666; }
+  ul { list-style: none; padding: 0; }
+  li { margin-bottom: 0.5rem; }
+  li a { text-decoration: none; }
+  li a:before { content: "→ "; color: #444; }
 </style>
 </head>
 <body>
-<div class="noise"></div>
-<div class="container">
-  <header>
-    <h1>Illustrate Everything</h1>
-    <p class="subtitle">Interactive illustrations built with Claude.</p>
-    <span class="count" id="count"></span>
-  </header>
-  <div class="divider"></div>
-  <div class="gallery" id="gallery">
-    <div class="loading">Loading&hellip;</div>
-  </div>
-  <footer>Enrico Bottazzi &middot; Built with Claude</footer>
-</div>
+<h1>Illustrate Everything</h1>
+<p>Interactive illustrations built with Claude.</p>
+<ul id="list"></ul>
 <script>
-  (async () => {
-    const gallery = document.getElementById('gallery');
-    const countEl = document.getElementById('count');
-    try {
-      const res = await fetch('manifest.json');
-      const items = await res.json();
-      if (!items.length) {
-        gallery.innerHTML = '<div class="empty">No illustrations yet.</div>';
-        return;
-      }
-      countEl.textContent = items.length + ' illustration' + (items.length === 1 ? '' : 's');
-      items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      gallery.innerHTML = items.map((item, i) => {
-        const num = String(i + 1).padStart(2, '0');
-        const date = item.date ? new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB', {
-          day: 'numeric', month: 'short', year: 'numeric'
-        }) : '';
-        return '<a class="card" href="' + item.file + '">' +
-          '<span class="card-number">' + num + '</span>' +
-          '<div class="card-body">' +
-            '<div class="card-title">' + item.title + '</div>' +
-            (item.description ? '<div class="card-desc">' + item.description + '</div>' : '') +
-          '</div>' +
-          '<span class="card-date">' + date + '</span>' +
-          '<span class="arrow">&rarr;</span>' +
-        '</a>';
-      }).join('');
-    } catch (e) {
-      gallery.innerHTML = '<div class="empty">Could not load illustrations.</div>';
-      console.error(e);
-    }
-  })();
+  fetch('manifest.json').then(r=>r.json()).then(items=>{
+    document.getElementById('list').innerHTML = items.map(i =>
+      '<li><a href="'+i.file+'">'+i.title+'</a></li>'
+    ).join('');
+  });
 </script>
 </body>
 </html>
